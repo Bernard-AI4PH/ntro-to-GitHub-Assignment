@@ -175,6 +175,7 @@ health_data %>%
   glimpse()
 ```
 The columns has long name and needs to rename the columns in the dataset for clarity and consistency, as well as recode the values for improved readability and usability.  
+
 ## 4.1 Renaming of variables 
 ```{r}
 health_data <- health_data %>% 
@@ -1365,6 +1366,7 @@ corr_matrix <- can_path_merged %>%
 corr_matrix
 
 ```
+
 The correlation matrix above presents the correlation between the numeric variables. The correlation between vegetable and fruit consumption is moderate and positive, 0.45, reflecting a general relationship but not perfect. Total fruit/vegetable consumption strongly correlates with both vegetable intake and fruit intake, 0.88 and 0.82, respectively, showing tight clusters.This can also be explained by deriving the total vegetable and fruits from the vegetable and fruits variable creating correlating values.  Physical activity correlates weakly with food variables, 0.09–0.11, reflecting a minimum relationship or pattern.
 
 ## 11.1 Heatmap of numeric variables 
