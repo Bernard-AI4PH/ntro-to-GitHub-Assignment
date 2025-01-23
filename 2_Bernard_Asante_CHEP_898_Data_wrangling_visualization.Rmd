@@ -1,0 +1,1384 @@
+---
+title: "Data Wrangling and Visualization"
+author: "Bernard Asante"
+date: "2025-01-16"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# **1. Loading libraries**
+```{r}
+library(tidyverse)
+library(reshape2)
+```
+
+
+# **2. Loading datasets**
+```{r, warning=FALSE}
+demo_data <- read_csv("can_path_demographics.csv")
+health_data <- read_csv("can_path_health.csv")
+
+demo_data %>% 
+  glimpse()
+
+health_data %>% 
+  glimpse()
+```
+
+# **3. Demographic dataset** 
+
+## 3.1 Data overview and structure
+```{r}
+demo_data %>% 
+  head()
+demo_data %>% 
+  tail()
+demo_data %>% 
+  str()
+demo_data %>% 
+  glimpse()
+
+```
+
+The variable SDC_GENDER is lengthy and can be recoded to a simpler name, such as gender. Similarly, SDC_INCOME can be recoded to income. Additionally, the gender variable should be of character type instead of being stored as a numeric or double variable. Both the gender and income variables need to be recoded based on the mappings provided in the can_path_dataset dictionary for better clarity and usability.
+
+## 3.2 Renaming Columns in Dataset  
+```{r}
+demo_data <- demo_data %>%    #Renaming columns to simple names
+  rename(Gender = SDC_GENDER,
+         Income = SDC_INCOME) 
+
+demo_data %>% 
+  head()
+```
+## 3.3.a  Recoding of Gender variable
+```{r}
+demo_data <- demo_data %>% 
+  mutate(Gender_recode = case_when(
+    Gender == 1 ~ "Male",
+    Gender == 2 ~ "Female"
+  )) %>% 
+  mutate(Gender_recode = as.factor(Gender_recode))  # Changing gender_recode variable type from character to factor
+
+demo_data %>% 
+  glimpse()     #observing shape of data, coloums and type to confirm if gender_recode has been changed sucessfully 
+
+```
+
+## 3.3.b  Recoding Income variable
+```{r}
+demo_data <- demo_data %>%
+  mutate(Income_recode = case_when(
+		Income == 1 ~ "Less than 10 000 $",
+		Income == 2 ~ "10 000 $ - 24 999 $",
+		Income  == 3 ~ "25 000 $ - 49 999 $",
+		Income == 4 ~ "50 000 $ - 74 999 $",
+    Income == 5 ~ "75 000 $ - 99 999 $",
+		Income == 6 ~ "100 000 $ - 149 999 $",
+    Income == 7 ~ "150 000 $ - 199 999 $",
+    Income == 8 ~	"200 000 $ or more"
+	)) %>% 
+  mutate(Income_recode = as.factor(Income_recode)) #Converting Income recode to factor 
+
+demo_data %>% 
+  head()  # Displaying first six row of the dataset 
+```
+
+It can be observed that the variable has been successfully converted to a factor.
+
+## 3.4  Selecting formatted columns 
+```{r}
+demo_data <- demo_data %>% 
+  select(ID,Gender_recode,Income_recode)
+
+demo_data %>% 
+  head()
+
+demo_data %>% 
+  str()  
+```
+
+## 3.5 Summarizing demographic  dataset
+```{r}
+demo_data %>% 
+  summary() 
+```
+The Female variable has no missing values. In contrast, the recoded Income variable contains 5,935 missing values.
+
+
+
+
+## 3.6 Finding missing data in dataset
+
+```{r}
+missing_demo_data <- sum(is.na(demo_data))
+
+print(missing_demo_data)    # observing number of missing values in the dataset 
+
+```
+The dataset has a total of 5934 missing values
+
+
+```{r}
+missing_demo_data <- demo_data %>% 
+  summarise_all(~sum(is.na(.)))
+
+print(missing_demo_data)
+```
+
+it can be seen that only income_recode has a missing value
+
+
+## 3.7 Removing missing data from  dataset
+
+```{r}
+demo_data_clean <- demo_data %>% 
+  drop_na()
+
+demo_data_clean %>% 
+  glimpse()
+```
+```{r}
+missing_demo_data_clean <- sum(is.na(demo_data_clean))
+
+print(missing_demo_data_clean)
+```
+
+## 3.8 Displaying number of duplicated rows 
+```{r}
+duplicates_demo_data <- sum(duplicated(demo_data))
+
+print(duplicates_demo_data)
+
+```
+
+# **4. Health Dataset**
+
+## 4.1 Data Overview and structure 
+```{r}
+health_data %>% 
+  head()    #Displaying first 6 rows of dataset
+health_data %>% 
+  tail()   #Displaying last 6 rows of dataset 
+health_data %>% 
+  str()
+health_data %>% 
+  glimpse()
+```
+The columns has long name and needs to rename the columns in the dataset for clarity and consistency, as well as recode the values for improved readability and usability.  
+## 4.1 Renaming of variables 
+```{r}
+health_data <- health_data %>% 
+  rename(Gen_health_status  = HS_GEN_HEALTH,
+         Veg_qty = NUT_VEG_QTY,
+         Fruits_qty = NUT_FRUITS_QTY,
+         PA_total_short = PA_TOTAL_SHORT,
+         Asthma_status = DIS_ASTHMA_EVER)
+print(health_data)
+```
+
+## 4.2 Recoding Variables 
+### 4.2.1 Recoding of Health variable 
+```{r}
+# 1	Poor
+# 2	Fair
+# 3 Good
+# 4 Very good
+#	5 Excellent
+
+health_data <- health_data %>% 
+  mutate(Gen_health_recode = case_when(
+    Gen_health_status == 1 ~ "Poor",
+    Gen_health_status == 2 ~ "Fair",
+    Gen_health_status == 3 ~ "Good",
+    Gen_health_status == 4 ~ "Very good",
+    Gen_health_status == 5 ~ "Excellent"
+      
+  )) %>% 
+  mutate(Gen_health_recode = as.factor(Gen_health_recode))
+
+health_data %>% 
+  glimpse()
+
+```
+
+### 4.2.2 Recoding of _Asthma_status_ variable 
+```{r}
+# 0	Never had asthma
+# 1	Ever had asthma
+# 2 Presumed - Never had asthma
+
+health_data <- health_data %>% 
+  mutate(Asthma_status_recode = case_when(
+    Asthma_status == 0 ~ "Never had asthma",
+    Asthma_status == 1 ~ "Ever had asthma",
+    Asthma_status == 2 ~ "Presumed - Never had asthma" )) %>% 
+  mutate(Asthma_status_recode = as.factor(Asthma_status_recode))
+
+health_data %>% 
+  glimpse()
+```
+
+### 4.2.3. Recoding of  _PA_total_short_ variable
+```{r}
+health_data <-health_data %>%
+  mutate(PA_total_short_cat = case_when(
+    PA_total_short < 600 ~ 'Low Activity',
+    PA_total_short >= 600 & PA_total_short < 3000 ~ 'Moderate Activity',
+    PA_total_short >= 3000 ~ 'High Activity'
+  )) %>% 
+  mutate(PA_total_short_cat = as.factor(PA_total_short_cat))
+
+health_data %>% 
+  glimpse()
+```
+
+
+## 4.3 Creating new variable for total fruits and vegetables 
+```{r}
+health_data <- health_data %>% 
+  mutate(Tot_fruit_veg = Veg_qty + Fruits_qty)
+
+health_data %>% 
+  glimpse()
+
+```
+## 4.4 Selecting formated columns 
+```{r}
+health_data <- health_data %>% 
+  select(ID,Gen_health_recode, Veg_qty,Fruits_qty,Tot_fruit_veg, Asthma_status_recode,PA_total_short, PA_total_short_cat )
+
+health_data %>% 
+  head()
+
+```
+
+## 4.5  Finding missing data 
+
+```{r}
+missing_health_data <- sum(is.na(health_data))
+
+print(missing_health_data)  
+
+```
+
+```{r}
+missing_health_data <- health_data %>% 
+  summarise_all(~sum(is.na(.)))
+
+print(missing_health_data)
+```
+
+##4.6  Removing missing data from  dataset
+```{r}
+health_data_clean <- health_data %>% 
+  drop_na()
+
+
+health_data_clean %>% 
+  glimpse()
+```
+
+```{r}
+missing_health_data_clean <- sum(is.na(health_data_clean))
+
+print(missing_health_data_clean) 
+```
+
+## 4.7  Finding duplicated Rows  
+```{r}
+duplicate_health_data = sum(duplicated(health_data))
+
+print(duplicate_health_data)
+
+```
+
+# **5. Joining Dataset**
+```{r}
+can_path_merged <- right_join(demo_data_clean, health_data_clean, by = join_by(ID)) %>% # Right-joining the dataset to keep all values in health_data_clean
+  drop_na() # dropping missing data in health_demo  variables
+
+can_path_merged %>% 
+  glimpse()
+
+
+can_path_merged %>% 
+  summary()
+```
+
+#  **6 can-path_merged dataset**
+## 6.1 Dropping missing values in dataset
+```{r}
+missing_can_path_merged <- sum(is.na(can_path_merged))
+missing_can_path_merged
+
+missing_health_data <- can_path_merged %>% 
+  summarise_all(~sum(is.na(.)))
+
+print(missing_health_data) 
+```
+
+# **7  Descriptive Analysis of Categorical variables **
+
+## 7.1  Frequency of gender variable 
+```{r}
+gender_freq <- table(can_path_merged$Gender_recode)
+gender_freq
+```
+It can be seen that there are 17279 females compared to 11678 males
+
+### 7.1.1 Calculating percentage of each gender
+```{r}
+gender_prop <- prop.table(table(can_path_merged$Gender_recode))*100
+gender_prop
+```
+
+Females make up 59.7% of the total gender variable, while males account for 40.3%.
+
+### 7.1.2  Creating a frequency dataframe for gender 
+```{r}
+gender_count <- can_path_merged %>% 
+  count(Gender_recode) %>% 
+  rename( Freq = n)
+
+gender_count
+```
+The frequency table shows a total of 17,279 females compared to 11,678 males.
+
+
+### 7.1.3 Visualizing the frequency of Gender variable
+```{r, fig.width = 8, fig.height = 3}
+gender_plot <- gender_count%>% 
+  ggplot(aes(x = reorder(Gender_recode,Freq), y = Freq))+
+  geom_segment(aes( x = reorder(Gender_recode,Freq), y = 0 , xend = reorder(Gender_recode,Freq), yend = Freq), color = "gray")+
+  geom_point( color = "#a31a5a", size = 4)+
+  coord_flip()+
+  theme_minimal()+
+  labs(
+    title = "Chart of Gender Frequency",
+    x = "Gender", 
+    y = "Frequency"
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+    
+
+plot(gender_plot)
+
+```
+
+
+
+
+## 7.2 Frequency of Income categorical variable 
+```{r}
+Income_freq <- table(can_path_merged$Income_recode)
+Income_freq
+```
+### 7.2.1 Calculating percentage of each Income
+```{r}
+Income_prop <- prop.table(table(can_path_merged$Income_recode))*100
+Income_prop
+```
+### 7.2.2 Creating a frequency dataframe for Income 
+```{r}
+Income_count <- can_path_merged %>% 
+  count(Income_recode) %>% 
+  rename( count = n) %>% 
+  arrange(desc(count))
+
+Income_count
+```
+
+The analysis of the Income_recode variable reveals a detailed distribution of individuals across various income brackets, highlighting significant trends in the dataset. The income range of $100,000 - $149,999 represents the largest group, accounting for 6,357 individuals, demonstrating that this bracket encompasses the majority of respondents. Similarly, the $50,000 - $74,999 and $75,000 - $99,999 brackets include 5,542 and 5,496 individuals, respectively, further emphasizing a concentration of individuals within the mid-income range.
+
+On the other hand, the lower-income brackets are comparatively less represented. The $10,000 - $24,999 range accounts for 1,568 individuals, while the Less than $10,000 bracket is the smallest group, with only 385 individuals.
+
+### 7.2.3 Visualizing income variable using the Income_count
+```{r, fig.width = 8, fig.height = 3}
+Income_plot <- Income_count %>% 
+  ggplot(aes(x = reorder(Income_recode,count),  y = count))+
+  geom_segment(aes( x = reorder(Income_recode,count), xend = reorder(Income_recode,count), y = 0,  yend = count), 
+               color = "gray", size = 1)+
+  geom_point( color = "#a31a5a", size = 4)+
+  coord_flip()+
+  theme_minimal()+
+  labs(
+    title = "Chart of Income Category ",
+    x = "Income", 
+    y = "Frequency"
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+    
+
+plot(Income_plot)
+
+```
+from the graph, it can be seen that those within the income range of $100,000 - $149999 represents the majority in the group followed by those with $50,000 to $74999. Those with less than $10 000 represent the lowest proportion.
+
+## 7.3 Frequency of _Gen health recode_ categorical variable 
+```{r}
+health_freq <- table(can_path_merged$Gen_health_recode)
+health_freq
+```
+
+The majority of respondents rated their health as "Very good" (12,363) or "Good" (8,871), reflecting an overall positive perception of health. Smaller groups reported "Excellent" (4,944), "Fair" (2,237), or "Poor" (542) health, indicating fewer individuals with moderate or negative health perceptions.
+
+
+### 7.3.1  Calculating percentage of each health category
+```{r}
+health_prop <- prop.table(health_freq)*100 
+health_prop 
+```
+
+Overall, respondents had a positive impression of their health, rating it as "Very good" (42.7%) or "Good" (30.6%). "Excellent" (17.1%), "Fair" (7.7%), and "Poor" (1.9%) were reported by smaller percentages.
+
+### 7.3.2  Creating a frequency dataframe for health 
+```{r}
+health_count <- can_path_merged %>% 
+  count(Gen_health_recode) %>% 
+  rename( count = n) %>% 
+  arrange(desc(count))
+
+health_count
+```
+
+
+
+### 7.3.3  Visualizing Health variable using the health_count
+```{r, fig.width = 8, fig.height = 3}
+health_plot <- health_count %>% 
+  ggplot(aes(x = reorder(Gen_health_recode,count),  y = count))+
+  geom_segment(aes( x = reorder(Gen_health_recode,count), xend = reorder(Gen_health_recode,count), y = 0,  yend = count), 
+               color = "gray", size = 1)+
+  geom_point( color = "#a31a5a", size = 4)+
+  coord_flip()+
+  theme_minimal()+
+  labs(
+    title = "Chart of Health Status Category ",
+    x = "Health Status", 
+    y = "Frequency"
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+    
+
+plot(health_plot)
+
+```
+
+From the plot, it can be seen that most respondents had positive opinions on their health, with 12,363 rating it as "Very good" and 8,871 rating it as "Good." 4,944 was rated as "Excellent." There were smaller groups with 2,237 in "Fair" and 542 in "Poor," which represented moderate or unfavorable health views. Most people consider their health to be satisfactory or even better overall.
+
+
+## 7.4  Frequency of _Asthma_status_recode_ 
+```{r}
+asthma_freq <- table(can_path_merged$Asthma_status_recode)
+asthma_freq
+```
+Of those who responded, 3,666 said they had asthma, while 25,064 said they had never had it. 227 people were also classified as presumed to have never experienced asthma. This indicates that a sizable majority of respondents did not have asthma, while a lesser percentage had a verified or suspected history of the condition.
+
+### 7.4.1 Calculating percentage of each Asthma_status_recode category
+```{r}
+asthma_prop <- prop.table(asthma_freq)*100 
+asthma_prop 
+```
+
+Of those surveyed, 86.6% said they had never had asthma, while 12.7% said they had it. Only 0.8% of people were assumed to have never had asthma. This demonstrates that while a small percentage of respondents either have asthma or are assumed to have it, the great majority do not.
+
+### 7.4.2  Creating a frequency dataframe for Asthma 
+```{r}
+asthma_count <- can_path_merged %>% 
+  count(Asthma_status_recode) %>% 
+  rename(count = n) %>% 
+  mutate(percentage = (count / sum(count)) * 100) %>% 
+  arrange(desc(count))
+
+asthma_count
+
+```
+
+
+
+### 7.4.3 Visualizing the Asthma_status_recode
+```{r, fig.width = 10, fig.height = 3}
+asthma_plot <- asthma_count %>% 
+  ggplot(aes(x = reorder(Asthma_status_recode,percentage),  y = percentage))+
+  geom_segment(aes(x = reorder(Asthma_status_recode,percentage),  yend = percentage, xend = reorder(Asthma_status_recode,percentage), y = 0))+
+  geom_point(color = "#a31a5a", size = 4)+
+  coord_flip()+
+  theme_minimal()+
+  labs(
+    title = "Chart of Asthma Status Category(%) ",
+    x = "Asthma Status", 
+    y = "Frequency"
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+    
+
+plot(asthma_plot)
+
+```
+From the graph,  86.6% reported never having asthma, while 12.7% indicated they had it. Additionally, 0.8% were presumed to have never had asthma. This highlights that a small percentage of respondents either have or are presumed to have asthma, while the vast majority do not.
+
+
+
+## 7.5  Frequency of _PA Total Short cat_ categorical variable 
+```{r}
+PA_freq <- table(can_path_merged$PA_total_short_cat)
+PA_freq
+```
+
+According to the the frequency table,the largest group of 12,741 people engage in moderate activity. Next in line are 9,322 people who report high activity and 6,894 people who report low activity. With fewer falling into the low-activity category, this suggests that the majority of respondents maintain at least moderate levels of physical activity.
+
+
+### 7.5.1  Calculating percentage of each Total Physical Activity Short category
+```{r}
+PA_prop <- prop.table(PA_freq)*100 
+PA_prop 
+```
+From the table,  43.99% engage in moderate activity, 32.19% in high activity, and 23.81% in low activity. This shows that the majority maintain moderate activity levels, while a smaller proportion are in the high or low activity categories.
+
+### 7.5.2  Creating a frequency dataframe for Total Physical Activity Short
+```{r}
+PA_count <- can_path_merged %>% 
+  count(PA_total_short_cat) %>% 
+  rename( count = n) %>% 
+  arrange(desc(count))
+
+PA_count
+```
+According to the the frequency table,the largest group of 12,741 people engage in moderate activity. Next in line are 9,322 people who report high activity and 6,894 people who report low activity. With fewer falling into the low-activity category, this suggests that the majority of respondents maintain at least moderate levels of physical activity.
+
+
+
+## 7.5.3  Visualizing Total Physical Activity Short variable 
+```{r, fig.width = 8, fig.height = 3}
+PA_plot <- PA_count %>% 
+  ggplot(aes(x = reorder(PA_total_short_cat,count),  y = count))+
+  geom_segment(aes( x = reorder(PA_total_short_cat,count), xend = reorder(PA_total_short_cat,count), y = 0,  yend = count), 
+               color = "gray", size = 1)+
+  geom_point( color = "#a31a5a", size = 4)+
+  coord_flip()+
+  theme_minimal()+
+  labs(
+    title = "Chart of Total Physical Activity Short Category ",
+    x = "Total Physical Activity Short", 
+    y = "Frequency"
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+    
+
+plot(PA_plot)
+
+```
+
+The physical activity levels of respondents as presented in the graph shows that, the largest group of 12,741 engage in moderate activity, 9,322 in high activity, and 6894	in low activity. This shows that the majority maintain moderate activity levels, while a smaller proportion are in the high or low activity categories.
+
+# **8 Descriptive Analysis of Numerical variables **
+
+## 8.1  summary of Total Vegetable consumed  variable 
+```{r}
+summary(can_path_merged$Veg_qty)
+```
+The vegetable consumption for the respondents varies from 0 to 35 units, with 50% consuming 2 units or less. The average is 2.661 units, slightly affected by high outliers. Most of the respondents consumed 2–3 units, as 75% consumed 3 or fewer. A maximum of 35 units indicates a huge variability among the respondents.
+
+### 8.1.1. Histogram of vegetable quantity
+
+```{r}
+veg_hist <- ggplot(can_path_merged, aes(x = Veg_qty))+
+  geom_histogram(binwidth = 1)
+  labs(
+    title = "Histrogram of total vegetable consumed  ",
+    x = "Total veg consumed", 
+    y = "Frequency"
+  )+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+plot(veg_hist)
+```
+The histogram above reflects a right-skewed distribution for vegetable consumption, with a majority of respondents consuming 0-5 units, with a peak of 2 units. Very few consume more than 10 units. 
+### 8.1.2 Boxplot of vegetable quantity
+```{r}
+veg_boxplot <- ggplot(can_path_merged, aes(x = Veg_qty))+
+  geom_boxplot()+
+  labs(
+    title = "Boxplot  vegetable quantity consumed  ",
+    x = "Total veg consumed"
+  )+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  coord_flip()
+
+
+plot(veg_boxplot)
+```
+The boxplot above indicates a low consumption rate for the majority and much variation with outliears extending from 5 to 35.
+
+## 8.2  summary of Total Fruits consumed 
+```{r}
+summary(can_path_merged$Fruits_qty)
+```
+there are respondents who recorded not having any fruit, about 25% consume below 1 fruit per day and 75% consume below 3 fruits. The maximum fruits consumed among the respondents is 21. 
+
+### 8.2.1  Histogram of fruits quantity
+
+```{r}
+fruits_hist <- ggplot(can_path_merged, aes(x = Fruits_qty))+
+  geom_histogram(binwidth = 1)
+  labs(
+    title = "Histrogram of total fruits consumed  ",
+    x = "Total fruits consumed", 
+    y = "Frequency"
+  )+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+plot(fruits_hist)
+```
+
+The histogram above represents fruits consumption among respondents. Majority consumed between 0 to about 4 fruits making the graph positively skewed with extreme values a bove 10. 
+
+### 8.2.2  Boxplot of fruits quantity
+```{r}
+fruit_boxplot <- ggplot(can_path_merged, aes(x = Fruits_qty))+
+  geom_boxplot()+
+  labs(
+    title = "Boxplot  fruits quantity consumed  ",
+    x = "Total fruits consumed"
+  )+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  coord_flip()
+
+
+plot(fruit_boxplot)
+```
+The majority of respondents consumed 1–3 units of fruits, while a small number consumed significantly higher amounts, creating noticeable outliers. The overall variation in fruit consumption is minimal for most respondents.
+
+
+## 8.3 summary of Total Fruits and Vegetables consumed 
+```{r}
+summary(can_path_merged$Tot_fruit_veg)
+```
+Total intake of fruits and vegetables has varied between 0 and 55 units. Most respondents consumed between 3 and 6 units; the median was 4, the mean 4.787, this last being influenced by outliers. Whereas the 75 percent consumed ≤ 6 units, the maximum of 55 reflects the consumption, very rarely, of a very high number.
+
+### 8.3.1  Histogram of fruits and vegetable quantity
+
+```{r}
+fruits_veg_hist <- ggplot(can_path_merged, aes(x = Tot_fruit_veg))+
+  geom_histogram(binwidth = 1)
+  labs(
+    title = "Histrogram of total fruits adn vegtable consumed  ",
+    x = "Total fruits and vegetable consumed", 
+    y = "Frequency"
+  )+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+plot(fruits_veg_hist)
+```
+
+The histogram of total fruits and vegetable is right-skewed with most of the respondents consume between 3-6 units of fruits and vegetables, while few outliers consume higher totals, thus creating a long tail.
+
+### 8.3.2  Boxplot of fruits and vegetable quantity
+```{r}
+fruit_veg_boxplot <- ggplot(can_path_merged, aes(x = Tot_fruit_veg))+
+  geom_boxplot()+
+  labs(
+    title = "Boxplot  fruits and vegetable quantity consumed  ",
+    x = "Total fruits and vegetable consumed"
+  )+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  coord_flip()
+
+
+plot(fruit_veg_boxplot)
+```
+The boxplot shows that the majority of respondents consumed between 3-6 units of fruits and vegetables, the median was 4. The whiskers are small in length, indicating small variation in typical consumption. There were several outliers, up to 55 units, reflecting very high consumption by a few respondents
+
+
+## 8.4 summary of Total Physical activity short 
+```{r}
+summary(can_path_merged$PA_total_short)
+```
+The responses for the majority of the participants ranged between 678 and 3786 units, with a median of 1830. About 75% of the respondents consume total fruits and vegetables upto or below 3786. The mean is 2603, indicating i high outliers with a maximum value of 19278 reflecting very high physical activity among some respondents.
+
+
+
+### 8.4.1 Histogram of Total Physical activity short 
+
+```{r}
+PA_hist <- ggplot(can_path_merged, aes(x = PA_total_short))+
+  geom_histogram(binwidth = 100)
+  labs(
+    title = "Histrogram of Total Physical activity short   ",
+    x = "Total Physical activity short", 
+    y = "Frequency"
+  )+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+plot(PA_hist)
+```
+The histogram on physcial activy  has a right skewed distribution. It can be seen that very low activity level was observed among majority of the respondents, with an approximate peak close to zero. Activity decreases almost linearly, with a long tail up to 19,278. This reflects aan  outliers at very high physical activity that impact the distribution of the data.
+
+
+### 8.4.2 Boxplot of Total Physical activity short 
+```{r}
+PA_boxplot <- ggplot(can_path_merged, aes(x = PA_total_short))+
+  geom_boxplot()+
+  labs(
+    title = "Boxplot  Total Physical activity short",
+    x = "Total Physical activity short "
+  )+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  coord_flip()
+
+
+plot(PA_boxplot)
+```
+
+Numerous outliers, extending to around 20,0000, indicate exceptionally high activity levels for some respondents.Majority of respondents are concentrated below 5,000. 
+
+
+
+# **9  Numeric and Categorical variables **
+
+## 9.1 Vegetable quantity 
+
+### 9.1.1 Analysis of Vegetable quantity by Gender
+```{r}
+gender_veg <- can_path_merged %>% 
+  group_by(Gender_recode) %>% 
+  summarise(mean_fruit_veg = mean(Veg_qty))
+
+print(gender_veg)
+
+```
+
+The average total fruit and vegetable consumption for females is 2.92 units, indicating a slightly higher intake compared to males.
+
+
+
+```{r, fig.height= 6}
+ggplot(can_path_merged, aes(x = Veg_qty, fill = Gender_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PRGn")+
+  coord_flip()+
+  labs(title = "Boxplot of total vegetable consumption by gender",
+       x = "Total Vegetable consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+The boxplot indicates that females consume more vegetables on average than males. However, higher medians and more outliers can be observed in the female gender, reflecting greater variability in female consumption.
+
+### 9.1.2  Analysis of Vegetable quantity by  income category
+```{r}
+income_veg <- can_path_merged %>% 
+  group_by(Income_recode) %>% 
+  summarise(mean_veg = mean(Veg_qty)) %>% 
+  arrange(desc(mean_veg))
+
+income_veg
+
+```
+Vegetable consumption increases with increasing income, from the lowest average consumption of 2.30 units for those earning less than $10,000, to the highest average consumption of 2.90 units among those earning $200,000 or more. 
+
+
+
+### Boxplot of total vegetable consumpstion by income category
+```{r, fig.height=6}
+ggplot(can_path_merged, aes(x = Veg_qty, fill = Income_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total vegetable consumption by income category",
+       x = "Total Vegetable consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+
+This boxplot shows higher vegetable consumption as the income increases. The medians are higher in the higher-income categories, while there are fewer outliers in the lower-income categories. Consumption variability increases with income, peaking in the highest category.
+
+
+
+### 9.1.3 Analysis of Vegetable quantity by Health status
+```{r}
+health_veg <- can_path_merged %>% 
+  group_by(Gen_health_recode) %>% 
+  summarise(mean_veg = mean(Veg_qty)) %>% 
+  arrange(desc(mean_veg))
+
+health_veg
+
+```
+From the frequency table, it can be observed that the mean of vegetable consumption is highest for those who perceive their health status as excellent and gradually decreases as self-rated health declines towards poor status.
+
+
+### chart of total  vegetable consumption by health status 
+```{r}
+ggplot(data = health_veg, aes(x = reorder(Gen_health_recode, mean_veg), y= mean_veg))+
+  geom_segment(aes(x = reorder(Gen_health_recode, mean_veg), yend= mean_veg, xend =reorder(Gen_health_recode, mean_veg), y = 0 ))+
+  geom_point( color = "#a31a5a", size = 4)+
+  scale_fill_brewer( palette = "Set3")+
+  labs(title = "Chart of vegetable consumpstion by Health status",
+       x = "Total Vegetable consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")+
+  coord_flip()
+```
+
+
+The chart above reveals that vegetable consumption is highest among individuals who rate their health as excellent and steadily declines as self-perceived health status worsens towards poor.
+
+### Boxplot of total vegetable consumpstion by Health status 
+
+```{r, fig.height=5}
+ggplot(can_path_merged, aes(x = Veg_qty, fill = Gen_health_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total vegetable consumpstion by Health status",
+       x = "Total Vegetable consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+
+The boxplot shows higher vegetable consumption among respondents with excellent or very good health. Median consumption decreases as health ratings decline, with poor health associated with the lowest vegetable consumption and fewer outliers.
+
+
+### 9.1.4 Analysis of Vegetable quantity by by Asthma status
+```{r}
+asthma_veg <- can_path_merged %>% 
+  group_by(Asthma_status_recode) %>% 
+  summarise(mean_veg = mean(Veg_qty)) %>% 
+  arrange(desc(mean_veg))
+
+asthma_veg
+
+```
+
+The consumption of vegetables among those who ever had asthma is slightly higher compared to that of subjects who never had asthma, suggesting the possible relation of asthma history and dietary habits. 
+
+### Boxplot of total  vegetable consumpstion by Asthma status 
+
+```{r, fig.height=5}
+ggplot(can_path_merged, aes(x = Veg_qty, fill = Asthma_status_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total vegetable consumption by Asthma status",
+       x = "Total Vegetable consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+Extreme outliers were seen in those who never had asthma compared to those who ever had asthma or presumed-never had asthma. 
+
+### 9.1.5 Analysis of Vegetable quantity by by Physical Activity short
+```{r}
+PA_veg <- can_path_merged %>% 
+  group_by(PA_total_short_cat) %>% 
+  summarise(mean_veg = mean(Veg_qty)) %>% 
+  arrange(desc(mean_veg))
+
+PA_veg
+
+```
+
+Vegetable consumption is higher among those with high activity with a mean of 2.85 with decrease in mean observed as physical activity ratings decreases. 
+
+
+### chart of total vegetable consumption by Physical Activity 
+```{r}
+ggplot(data = PA_veg, aes(x = reorder(PA_total_short_cat, mean_veg), y= mean_veg))+
+  geom_segment(aes(x = reorder(PA_total_short_cat, mean_veg), yend= mean_veg, xend =reorder(PA_total_short_cat, mean_veg), y = 0 ))+
+  geom_point( color = "#a91a5a", size = 4)+
+  scale_fill_brewer( palette = "Set3")+
+  labs(title = "Chart of total vegetable consumption by Total Physical Activity Short",
+       x = "Total Vegetable consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")+
+  coord_flip()
+```
+
+From the chart, it can be seen that those with high activity haas relatively longer bars and reduces steadily ad activity level reduces among respondents
+
+### Boxplot of vegetable consumption by Physical Activity Short
+
+```{r, fig.height=5}
+ggplot(can_path_merged, aes(x = Veg_qty, fill = PA_total_short_cat))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total vegetable consumption by Physical Activity Short",
+       x = "Total Vegetable consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+
+Outlier were seen in total vegetable quantity among those with high activity compared to those with low activity and moderate activity. 
+
+
+## 9.2 Fruit Quantity
+
+### 9.2.1 Analysis of Fruit quantity by Gender 
+
+```{r}
+gender_fruit <- can_path_merged %>% 
+  group_by(Gender_recode) %>% 
+  summarise(mean_fruit = mean(Fruits_qty))
+
+gender_fruit
+
+```
+Mean fruit consumption is higher among females compared to males with means of 2.29 and 1.88 respectively.
+
+### Boxplot of total fruit  consumed by Gender
+```{r, fig.height= 6}
+ggplot(can_path_merged, aes(x = Fruits_qty, fill = Gender_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PRGn")+
+  coord_flip()+
+  labs(title = "Boxplot of total fruit consumpstion by gender",
+       x = "Total fruits consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+
+Outliers were observed among females which may influence their means compared to males. 
+
+
+### 9.2.2 Analysis of Fruit quantity  by income category
+```{r}
+income_fruits <- can_path_merged %>% 
+  group_by(Income_recode) %>% 
+  summarise(mean_fruit = mean(Fruits_qty)) %>% 
+  arrange(desc(mean_fruit))
+
+income_fruits
+
+```
+
+It can be seen that mean fruit consumption is higher among those who are categorize as having income between $200 000 or more and reduces as income category decreases. 
+
+### Boxplot of total fruit consumption by income category
+```{r, fig.height=6}
+ggplot(can_path_merged, aes(x = Fruits_qty, fill = Income_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total fruit consumpstion by income category",
+       x = "Total Fruits consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+
+### 9.2.3 Analysis of Fruit quantity  by Health status
+```{r}
+health_fruits <- can_path_merged %>% 
+  group_by(Gen_health_recode) %>% 
+  summarise(mean_fruit = mean(Fruits_qty)) %>% 
+  arrange(desc(mean_fruit))
+
+health_fruits
+
+```
+
+Mean fruit consumption is high among those with excellent health status followed with those who are classified as having health rating as very good and mean fruit consumption reduces as health status rating decreases. 
+
+
+### chart of total fruit consumption by health status 
+```{r}
+ggplot(data = health_fruits, aes(x = reorder(Gen_health_recode, mean_fruit), y= mean_fruit))+
+  geom_segment(aes(x = reorder(Gen_health_recode, mean_fruit), yend= mean_fruit, xend =reorder(Gen_health_recode, mean_fruit), y = 0 ))+
+  geom_point( color = "#a31a5a", size = 4)+
+  scale_fill_brewer( palette = "Set3")+
+  labs(title = "Chart of total fruit consumpstion by Health status",
+       x = "Total Fruits consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")+
+  coord_flip()
+```
+Respondents with excellent health consume the most fruits, averaging 2.5 units, while those with poor health consume the least at 2.0 units, highlighting a decline in fruit consumption with decline in  health.
+
+### Boxplot of total fruit  consumpstion by Health status 
+
+```{r, fig.height=5}
+ggplot(can_path_merged, aes(x = Fruits_qty, fill = Gen_health_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total fruit consumpstion by Health status",
+       x = "Total Fruits consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+
+In the boxplot above on fruit consumption s by health status, higher medians are seen in those who rated their health as excellent and more outliers, hence greater variability among the healthier respondents. Poorer health is related to lower consumption and fewer extreme values.
+
+
+### 9.2.4 Analysis of Fruit quantity by Asthma status
+```{r}
+asthma_fruit <- can_path_merged %>% 
+  group_by(Asthma_status_recode) %>% 
+  summarise(mean_fruit = mean(Fruits_qty)) %>% 
+  arrange(desc(mean_fruit))
+
+asthma_fruit
+
+```
+
+From the table, it is observable that fruit consumption is highest among the subjects presumed never to have asthma, with 2.27 units, slightly less among those with asthma, 2.20, and the lowest among the non-asthmatics, 2.11.
+
+
+### Boxplot of total fruit consumpstion by Asthma status 
+
+```{r, fig.height=5}
+ggplot(can_path_merged, aes(x = Fruits_qty, fill = Asthma_status_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total fruit  consumpstion by Asthma status",
+       x = "Total fruits consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+Fruit consumption varies a little according to asthma status. It is highest among respondents who probably never had asthma, and it is lowest among respondents who never had asthma. All three categories contain outliers with higher variation observed among those who have never had asthma.
+
+### 9.2.5 Analysis of Fruit quantity  by Physical Activity short
+```{r}
+PA_fruits <- can_path_merged %>% 
+  group_by(PA_total_short_cat) %>% 
+  summarise(mean_fruit = mean(Fruits_qty)) %>% 
+  arrange(desc(mean_fruit))
+
+PA_fruits
+
+```
+Mean fruit consumption is higher among those who classify their physical activity as high and reduces steadily as physical activity level reduces. 
+
+### chart of total fruit consumption by health status 
+```{r}
+ggplot(data = PA_fruits, aes(x = reorder(PA_total_short_cat, mean_fruit), y= mean_fruit))+
+  geom_segment(aes(x = reorder(PA_total_short_cat, mean_fruit), yend= mean_fruit, xend =reorder(PA_total_short_cat, mean_fruit), y = 0 ))+
+  geom_point( color = "#a91a5a", size = 4)+
+  scale_fill_brewer( palette = "Set3")+
+  labs(title = "Chart of total fruit consumpstion by Total Physical Activity Short",
+       x = "Total Fruits consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")+
+  coord_flip()
+```
+From the chart, it can be observed that fruit cinsumption reduces as level of physical activity rating or category reduces
+
+### Boxplot of total fruit consumption by Physical Activity Short
+
+```{r, fig.height=5}
+ggplot(can_path_merged, aes(x = Veg_qty, fill = PA_total_short_cat))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total fruit consumpstion by Physical Activity Short",
+       x = "Total Fruit consumed",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+Higher fruit consumption was seen among those with higher physical activity with extreme outliers compared to those with low and moderate physical activity.
+
+
+## 9.3  Analysis of Physical Activity Total 
+
+### 9.3.1 Analysis of Physical Activity by Gender
+```{r}
+gender_PA <- can_path_merged %>% 
+  group_by(Gender_recode) %>% 
+  summarise(mean_PA = mean(PA_total_short))
+
+gender_PA
+
+```
+
+Mean physical activity was observed among males comapred to females with mean physical activity of 2535 adn 2702 respectively.
+
+
+### Boxplot of Physical Activity by Gender
+```{r, fig.height= 6}
+ggplot(can_path_merged, aes(x = PA_total_short, fill = Gender_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PRGn")+
+  coord_flip()+
+  labs(title = "Boxplot of Physical Activity by gender",
+       x = "Physical Activity Short",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+
+The boxplot indicates similar median scores in physical activity, which are similar for both males and females. It also reflects a wide range in both with outliers, though females are showing more extreme outliers.
+
+###  9.3.2. Analysis of Physical Activity  by income category
+```{r}
+Income_PA <- can_path_merged %>% 
+  group_by(Income_recode) %>% 
+  summarise(mean_PA= mean(PA_total_short)) %>% 
+  arrange(desc(mean_PA))
+
+Income_PA
+
+```
+
+Higher income groups show higher mean physical activity scores, with the highest found in the $200,000 or more category.
+
+### Boxplot of Physical Activity  by income category
+```{r, fig.height=6}
+ggplot(can_path_merged, aes(x = PA_total_short, fill = Income_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of Physical Activity by income category",
+       x = "Total Physical activity ",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+The boxplot compares total physical activity across income categories. Higher income classes, like "$200,000 or more," register a higher median activity level versus lower income classes. Variability-the IQR-is consistent across all categories, with significant outliers in each category.
+
+
+### 9.3.3 Analysis of Physical Activity Total by Health status
+```{r}
+health_PA <- can_path_merged %>% 
+  group_by(Gen_health_recode) %>% 
+  summarise(mean_PA = mean(PA_total_short)) %>% 
+  arrange(desc(mean_PA))
+
+health_PA
+
+```
+
+From the table, physical activity increases with improved self-reported health. The "Excellent" health group has the highest average activity, 3224.49, while the , "Poor," reported the lowest, 1743.37.
+
+
+### chart of Physical Activity  by health status 
+```{r}
+ggplot(data = health_PA, aes(x = reorder(Gen_health_recode, mean_PA), y= mean_PA))+
+  geom_segment(aes(x = reorder(Gen_health_recode, mean_PA), yend= mean_PA, xend =reorder(Gen_health_recode, mean_PA), y = 0 ))+
+  geom_point( color = "#a31a5a", size = 4)+
+  scale_fill_brewer( palette = "Set3")+
+  labs(title = "Total Physical activity(short) by Health Status", 
+       x = "Health status",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")+
+  coord_flip()
+```
+
+Physical activity levels are high among excellent groups and reduces as health status reduces towards poor category
+
+### Boxplot of Physical Activity by Health status 
+
+```{r, fig.height=5}
+ggplot(can_path_merged, aes(x = PA_total_short, fill = Gen_health_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of Physical Activity by Health status",
+       x = "Total Physical Activity",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+
+This boxplot displays the total physical activity by health status. The "Excellent" and "Very good" categories of health have a little higher medians, while "Poor" has the lowest. All groups have similar interquartile ranges, with outliers indicating high activity levels across categories. Physical activity levels overlap, suggesting health differences involve factors beyond activity alone.
+
+
+### 9.3.4 Analysis of Physical Activity  by Asthma status
+```{r}
+asthma_PA <- can_path_merged %>% 
+  group_by(Asthma_status_recode) %>% 
+  summarise(mean_pa = mean(PA_total_short)) %>% 
+  arrange(desc(mean_pa))
+
+asthma_PA
+
+```
+
+
+The frequency table shows mean physical activity (PA) levels by asthma status. Individuals who "Ever had asthma" have the highest mean PA (2668.16), followed by those who "Never had asthma" (2594.77). The "Presumed - Never had asthma" group has the lowest mean PA (2468.70), indicating slight differences across asthma statuses.
+
+### Boxplot of Physical Activity by Asthma status 
+
+```{r, fig.height=5}
+ggplot(can_path_merged, aes(x = Tot_fruit_veg, fill = Asthma_status_recode))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "Set3")+
+  coord_flip()+
+  labs(title = "Boxplot of total Physical Activity(short) by Asthma status",
+       x = "Physical Activity",
+       y= "")+
+  theme_minimal()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+```
+This boxplot displays total physical activity, short duration, by asthma status. The medians for physical activity are similar between "Ever had asthma," "Never had asthma," and "Presumed - Never had asthma." There are outliers in all categories, with the highest variation in upper outliers observed in "Never had asthma." Activity distributions are similar.
+
+# **10 Additional Data Visualization  **
+
+```{r}
+corr_matrix <- can_path_merged %>% 
+  select(Veg_qty, Fruits_qty, Tot_fruit_veg, PA_total_short) %>% 
+  cor(use = "complete.obs")
+
+corr_matrix  #Correlation matrix to show the correlation between numerical variables
+```
+
+
+## 10.1  Scatterplot of vegetable and fruits variable by gender
+```{r}
+ggplot(can_path_merged, aes(Veg_qty,Fruits_qty, colour = Gender_recode))+
+  geom_point(size = 2)+
+  geom_smooth( method = "lm")+
+  labs(title = "Scatterplot of  Vegetable and fruits  Quantity Consumed by gender", x = 'Vegetables', 
+       y = "Fruits quantity")+
+  theme_minimal()+
+  theme(
+  legend.position = 'bottom'
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+From the scatter plot, it can be observed that a moderate positive correlation exist between fruits quantity consumed and vegetables, however, extreme outlier were seen among females compared to males. 
+
+
+## 10.2 Scatterplot of vegetable and fruits variable by Income
+
+```{r}
+ggplot(can_path_merged, aes(Veg_qty,Fruits_qty, colour = Income_recode))+
+  geom_point(size = 3)+
+  geom_smooth(method = "lm", se = FALSE)+
+  labs(title = "Scatterplot of  Vegetable and fruits  Quantity Consumed by Income", x = 'Vegetables')+
+  theme_minimal()+
+  theme(
+  legend.position = 'bottom'
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+
+A positive corelation can be observed however, income variables are dispersed randomly on the scatter plot without any observable patterns.
+
+## 10.3 Scatterplot of vegetable and fruits variable by Income
+
+```{r}
+ggplot(can_path_merged, aes(Veg_qty,Fruits_qty, colour = Gen_health_recode))+
+  geom_point()+
+  geom_smooth( method = "lm", se = FALSE)+
+  labs(title = "Scatterplot of  Vegetable and fruits  Quantity Consumed by General Health", x = 'Vegetables')+
+  theme_minimal()+
+  theme(
+  legend.position = 'bottom'
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+A psoitive correlation can be observed in the scatter plot above, however, extreme vegetable consumtion were seen among those who responded having excellent health and very good respectively.  
+
+## 10.4 Scatterplot of vegetable and fruits variable by Asthma Status
+
+```{r}
+ggplot(can_path_merged, aes(Veg_qty,Fruits_qty, colour = Asthma_status_recode))+
+  geom_point()+
+  labs(title = "Scatterplot of  Vegetable and fruits  Quantity Consumed by Income", x = 'Total Vegetables', 
+       y = "Total Fruits ")+
+  theme_minimal()+
+  theme(
+  legend.position = 'bottom'
+  )+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+A moderate correlation can be seen between, total fruits and vegetables quantity, extreme vegetables and fruits were seen disporportionately among those who have never had asthma.
+
+## 10.5  Scatterplot ot total fruits_vegetable and physical activity short
+```{r}
+ggplot(can_path_merged, aes(Tot_fruit_veg,PA_total_short, colour = Gender_recode))+
+  geom_point(position ="Jitter")+
+  labs(title = "Scatterplot of  Vegetable and fruits  Quantity Consumed and physical activity", x = 'Total_Fruit_Vegetables',
+       y = "Physical activity")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+
+A mild posiive correlation can be seen between physical activity and total vegetable consumption. It can be observed that females has extremely high values or outlier in total fruit and vegetables consumed compared to males
+## 10.6  Scatterplot of vegetable quantity and physical activity short
+```{r}
+ggplot(can_path_merged, aes(PA_total_short, Veg_qty, colour = Gen_health_recode))+
+  geom_point(position = 'jitter')+
+  labs(title = "Scatterplot of  Physical Activity and Quantity Consumed", x = 'Physical Activity')+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+A weak positive correlation can be seen between vegetable quantity and physical activity. However, extreme vegetable consumption was seen among those with excellent and very good health status
+
+# **11 Correlation matrix for all numeric variables** 
+
+```{r}
+corr_matrix <- can_path_merged %>% 
+  select(Veg_qty, Fruits_qty, Tot_fruit_veg, PA_total_short) %>% 
+  cor(use = "complete.obs")
+
+corr_matrix
+
+```
+The correlation matrix above presents the correlation between the numeric variables. The correlation between vegetable and fruit consumption is moderate and positive, 0.45, reflecting a general relationship but not perfect. Total fruit/vegetable consumption strongly correlates with both vegetable intake and fruit intake, 0.88 and 0.82, respectively, showing tight clusters.This can also be explained by deriving the total vegetable and fruits from the vegetable and fruits variable creating correlating values.  Physical activity correlates weakly with food variables, 0.09–0.11, reflecting a minimum relationship or pattern.
+
+## 11.1 Heatmap of numeric variables 
+```{r}
+
+melted_corr <- melt(corr_matrix)
+
+melted_corr
+
+ggplot(melted_corr, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile() +
+    scale_fill_gradient2(low = "red", high = "blue", mid = "white", midpoint = 0) +
+    labs(title = "Correlation Heatmap", x = "", y = "")
+```
+
+The heatmap shows strong correlations between vegetable and total fruit/vegetable intake (0.88) and fruit and total fruit/vegetable intake (0.82). Vegetable and fruit intake have a moderate correlation (0.45). Physical activity weakly correlates with all dietary variables (0.09–0.11), indicating minimal connection between physical activity levels and food consumption patterns.
+
